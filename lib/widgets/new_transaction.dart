@@ -64,9 +64,9 @@ class _NewTransactionState extends State<NewTransaction> {
               decoration: InputDecoration(
                 labelText: 'Amount',
               ),
-              // onChanged: (value) {
-              //   amountInput = value;
-              // },
+              onChanged: (value) {
+                amountController.text = value;
+              },
               controller: amountController,
               keyboardType: TextInputType.number,
               onSubmitted: (_) => _submitData(),
@@ -100,4 +100,5 @@ class _NewTransactionState extends State<NewTransaction> {
       ),
     );
   }
+
 }

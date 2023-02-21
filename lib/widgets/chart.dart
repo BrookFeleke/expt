@@ -16,15 +16,13 @@ class Chart extends StatelessWidget {
       double totalSum = 0.0;
 
       for (var i = 0; i < recentTransactions.length; i++) {
-        if (recentTransactions[i].date.day == weekDay.day &&
-            recentTransactions[i].date.month == weekDay.month &&
-            recentTransactions[i].date.year == weekDay.year) {
-          totalSum += recentTransactions[i].amount;
+        if (recentTransactions[i].date?.day == weekDay.day &&
+            recentTransactions[i].date?.month == weekDay.month &&
+            recentTransactions[i].date?.year == weekDay.year) {
+          totalSum += recentTransactions[i].amount!;
         }
       }
-      print(DateFormat.E().format(weekDay));
-      print(totalSum);
-
+   
       return {
         'day': DateFormat.E().format(weekDay).substring(0, 1),
         'amount': totalSum
@@ -43,7 +41,7 @@ class Chart extends StatelessWidget {
   // You are on Video number 32
   @override
   Widget build(BuildContext context) {
-    print(groupedTransactionValues);
+  
     return Card(
       // color: Theme.of(context).primaryColor,
       elevation: 6,

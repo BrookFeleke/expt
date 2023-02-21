@@ -1,52 +1,50 @@
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:logger/logger.dart';
 import '../models/transaction.dart';
 import '../widgets/transactions_list.dart';
 import '../widgets/new_transaction.dart';
 import '../widgets/chart.dart';
 // import 'firebase_options.dart';
 
-
 class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+// final db = FirebaseFirestore.instance;
 class _MyHomePageState extends State<MyHomePage> {
   // String titleInput;
-final user = FirebaseAuth.instance.currentUser!;
+  final user = FirebaseAuth.instance.currentUser!;
   void signUserOut() {
     FirebaseAuth.instance.signOut();
   }
-  final List<Transaction> _userTransactions = [
-    // Transaction(
-    //   id: 't1',
-    //   title: 'Unlimited Package',
-    //   amount: 700,
-    //   date: DateTime.now(),
-    // ),
-    // Transaction(
-    //   id: 't2',
-    //   title: 'Charger',
-    //   amount: 400,
-    //   date: DateTime.now(),
-    // ),
-  ];
 
+  var logger = Logger();
+  final List<Transaction> _userTransactions = [];
+  List<Transaction> _trans = [];
   List<Transaction> get _recentTransaction {
     return _userTransactions.where((element) {
-      return element.date.isAfter(DateTime.now().subtract(Duration(days: 7)));
+      return element.date!.isAfter(DateTime.now().subtract(Duration(days: 7)));
     }).toList();
   }
 
-  void _addNewTransaction(String txTitle, double txAmount, DateTime date) {
+  // Transaction _transaction = Transaction();
+  void _addNewTransaction(
+      String txTitle, double txAmount, DateTime date) async {
     final newTx = Transaction(
         id: DateTime.now().toString(),
         title: txTitle,
         amount: txAmount,
         date: date);
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("transactions")
+        .add(newTx.toJson());
     setState(() {
       _userTransactions.add(newTx);
     });
@@ -60,10 +58,46 @@ final user = FirebaseAuth.instance.currentUser!;
         });
   }
 
-  void _deleteTransaction(String id) {
+  void _deleteTransaction(String id) async {
+    // _startAddNewTransaction(context);
+
+    print("This is being called ");
+    var idc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("transactions")
+        .get()
+        .then((value) {
+      String? idd;
+      value.docs.forEach((element) {
+        if (element.data()["id"] == id) {
+          idd = element.id;
+        }
+        logger.d(element.data());
+      });
+      return idd;
+    });
+    // .where("id", isEqualTo: "2023-02-21 23:46:36.217245")
+    // .snapshots().elementAt(0).toString();
+    var dell = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("transactions")
+        .doc(idc)
+        .delete()
+        .then((value) => print("fdaf"));
+    // print(idc);
+    // logger.v(dell);
     setState(() {
       _userTransactions.removeWhere((element) => element.id == id);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    // TODO: implement didChangeDependencies
+    super.didChangeDependencies();
+    getTransactions();
   }
 
   @override
@@ -78,19 +112,70 @@ final user = FirebaseAuth.instance.currentUser!;
               onPressed: () {
                 _startAddNewTransaction(context);
               },
-              icon: Icon(Icons.add))
-        ,IconButton(onPressed: signUserOut, icon: Icon(Icons.logout))],
+              icon: Icon(Icons.add)),
+          IconButton(onPressed: signUserOut, icon: Icon(Icons.logout))
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            // Text(FirebaseAuth.instance.currentUser?.uid ),
-            Chart(_recentTransaction),
-            TransactionList(_userTransactions, _deleteTransaction),
-          ],
-        ),
+      body: Column(
+        // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: <Widget>[
+          // Text(FirebaseAuth.instance.currentUser?.uid ),
+          // Chart(_recentTransaction),
+
+          Flexible(
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection("users")
+                  .doc(user.uid)
+                  .collection("transactions")
+                  .snapshots(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasData) {
+                  print("YES IT HAS DATA");
+                  print(snapshot.data!.size);
+                  // return ListView.builder(
+                  //     itemCount: snapshot.data!.docs.length,
+                  //     itemBuilder: (context, index) {
+                  var data = snapshot.data!;
+                  //       print(data!.docs[index]);
+
+                  List<Transaction> tranny = List.from(
+                      data.docs.map((e) => Transaction.fromSnapShot(e)));
+                  List<Transaction> rec = tranny.where((element) {
+                    return element.date!
+                        .isAfter(DateTime.now().subtract(Duration(days: 7)));
+                  }).toList();
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Chart(rec),
+                        TransactionList(tranny, _deleteTransaction),
+                      ],
+                    ),
+                  );
+                } else {
+                  return Center(
+                    child: Column(
+                      children: [
+                        Text('No Transactions Yet'),
+                        SizedBox(height: 10),
+                        Container(
+                            height: 150,
+                            child: Image.asset('assets/images/waiting.png',
+                                fit: BoxFit.cover))
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+
+          // TransactionList(_trans, _deleteTransaction),
+        ],
       ),
+
       // floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         // backgroundColor: Colors.green.shade500,
@@ -103,5 +188,19 @@ final user = FirebaseAuth.instance.currentUser!;
         },
       ),
     );
+  }
+
+  Future getTransactions() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    var data = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(uid)
+        .collection('transactions')
+        .orderBy('date')
+        .get();
+
+    setState(() {
+      _trans = List.from(data.docs.map((e) => Transaction.fromSnapShot(e)));
+    });
   }
 }
