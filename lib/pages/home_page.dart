@@ -108,11 +108,11 @@ class _MyHomePageState extends State<MyHomePage> {
         // backgroundColor: Colors.green.shade800,
         title: Text('Expense Tracker'),
         actions: [
-          IconButton(
-              onPressed: () {
-                _startAddNewTransaction(context);
-              },
-              icon: Icon(Icons.add)),
+          // IconButton(
+          //     onPressed: () {
+          //       _startAddNewTransaction(context);
+          //     },
+          //     icon: Icon(Icons.add)),
           IconButton(onPressed: signUserOut, icon: Icon(Icons.logout))
         ],
       ),

@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cool_app/components/my_button.dart';
 import 'package:cool_app/components/square_tile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 // import 'package:flutter/components/my_button.dart';
 import '../components/my_textfield.dart';
 
@@ -137,18 +139,18 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 10),
 
                 // forgot password?
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Forgot Password?',
-                        style: TextStyle(color: Colors.grey[100]),
-                      ),
-                    ],
-                  ),
-                ),
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.end,
+                //     children: [
+                //       Text(
+                //         'Forgot Password?',
+                //         style: TextStyle(color: Colors.grey[100]),
+                //       ),
+                //     ],
+                //   ),
+                // ),
 
                 const SizedBox(height: 15),
 
@@ -193,9 +195,9 @@ class _LoginPageState extends State<LoginPage> {
                 // google + apple sign in buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children:  [
                     // google button
-                    SquareTile(imagePath: 'lib/images/google.png'),
+                    GestureDetector(onTap: signInWithGoogle,child: SquareTile(imagePath: 'lib/images/google.png'),),
 
                     SizedBox(width: 15),
 
@@ -233,5 +235,18 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  signInWithGoogle() async{
+GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+ GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+    AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth!.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    UserCredential userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+    
+    await  FirebaseFirestore.instance.collection('users').doc(userCred.user?.uid).set(
+          {'first name': "firstName", 'last name': "", "email": userCred.user?. email});
   }
 }

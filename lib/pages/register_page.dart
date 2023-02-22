@@ -4,6 +4,7 @@ import 'package:cool_app/components/square_tile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 // import 'package:flutter/components/my_button.dart';
 import '../components/my_textfield.dart';
 
@@ -49,9 +50,10 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       if (passwordController.text == confirmPasswordController.text) {
         //create user
-        UserCredential cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim());
+        UserCredential cred = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+                email: emailController.text.trim(),
+                password: passwordController.text.trim());
 
         addUserDetails(
           cred.user!.uid,
@@ -72,7 +74,7 @@ class _RegisterPageState extends State<RegisterPage> {
       //   await showErrorMessage("invalid-email");
       // } else if (e.code == 'wrong-password') {
       // }
-        await showErrorMessage('wrong-password');
+      await showErrorMessage('wrong-password');
       print(e);
     } catch (e) {
       print(e);
@@ -82,7 +84,8 @@ class _RegisterPageState extends State<RegisterPage> {
     Navigator.pop(context);
   }
 
-  Future addUserDetails(String id,String firstName, String lastName, String email) async {
+  Future addUserDetails(
+      String id, String firstName, String lastName, String email) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(id).set(
           {'first name': firstName, 'last name': lastName, "email": email});
@@ -116,7 +119,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 15),
                 // username textfield
-                
 
                 MyTextField(
                   controller: firstNameController,
@@ -137,7 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   hintText: 'Email',
                   obscureText: false,
                 ),
-                
+
                 const SizedBox(height: 5),
                 // password textfield
                 MyTextField(
@@ -196,9 +198,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 // google + apple sign in buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children:  [
                     // google button
-                    SquareTile(imagePath: 'lib/images/google.png'),
+                    GestureDetector(child: SquareTile(imagePath: 'lib/images/google.png'),onTap: signInWithGoogle,),
 
                     SizedBox(width: 15),
 
@@ -236,5 +238,25 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  signInWithGoogle() async {
+    GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+    AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth!.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    UserCredential userCred =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCred.user?.uid)
+        .set({
+      'first name': "firstName",
+      'last name': "",
+      "email": userCred.user?.email
+    });
   }
 }
